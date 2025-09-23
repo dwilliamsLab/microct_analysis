@@ -1,15 +1,20 @@
 library("ggplot2")
+library("dplyr")
+library("scales")
 
 #defined samples to include
-sample_names_df = c(       "DW02","DW03","DW04","DW05","DW06","DW07","DW08","DW09","DW10",
-                    "DW11","DW12","DW13","DW14","DW15","DW16","DW17","DW18","DW19","DW20",
-                    "DW21","DW22","DW23","DW24","DW25","DW26","DW27","DW28","DW29","DW30",
-                           "DW32","DW33","DW34","DW35","DW36")
+# sample_names_df = c("DW01","DW02","DW03","DW04","DW05","DW06","DW07","DW08","DW09","DW10",
+#                     "DW11","DW12","DW13","DW14","DW15","DW16","DW17","DW18","DW19","DW20",
+#                     "DW21","DW22","DW23","DW24","DW25","DW26","DW27","DW28","DW29","DW30",
+#                            "DW32","DW33","DW34","DW35","DW36")
 
-default_table_names = c("Segment","Voxel count", "Volume mm3", "Volume cm3","Minimum", "Maximum", "Mean", "Standard deviation",
-                        "Percentile 5", "Percentile 95", "Median")
+sample_names_df = c("DW02","DW03","DW04","DW05","DW06","DW07","DW08","DW09","DW10",
+                    "DW11","DW12")
+
+default_table_names = c("Segment","Voxel count (LM)", "Volume mm3 (LM)", "Volume cm3 (LM)", "Voxel count (SV)", "Volume mm3 (SV)","Volume cm3 (SV)","Minimum", "Maximum", "Mean", "Standard deviation",
+                        "Percentile 5", "Percentile 95", "Median", "Surface mm2", "Volume mm3 (CS)", "Volume cm3 (CS)")
 #read in the samples details
-sample_info_df = read.csv("Desktop/Drake Williams lab/uCT_data_v2/uCT scan records.csv")
+sample_info_df = read.csv("uCT scan records.csv")
 #sample_info_df
 sampleID_df = data.frame(sample_info_df$Sample.name..scanco.)
 colnames(sampleID_df) = "SampleID"
@@ -18,36 +23,51 @@ colnames(sampleID_duration_df) = "Endpoint_days"
 sampleID_and_duration_df = data.frame(cbind(sampleID_df, sampleID_duration_df))
 sampleID_and_duration_df
 
+#try reading in a sample
+current_sample_Left = read.table(file = "DW02/DW02_L.tsv", header = TRUE, fill = TRUE)
+current_sample_Left
+dim(current_sample_Left)
+colnames(current_sample_Left) = default_table_names
+current_sample_Left
+current_sample_Left = current_sample_Left[1:2,1:17]
+current_sample_Left
+
+
 #make a dataframe for all bone statistics
 num_samples = length(sample_names_df)
 all_bone_samples_df = data.frame(matrix(data = 0, nrow = num_samples, ncol = 19))
-data_names = colnames(current_sample_Left[,1:7])
-data_names = c("SampleID", "Orientation side", data_names, "Orientation side", data_names, "Difference_in_volume", "Total_volume")
-#data_names
+data_names = c("SampleID","Orientation side","Segment", "Voxel count (LM)","Volume mm3 (LM)" , "Volume cm3 (LM)", "Voxel count (SV)","Volume mm3 (SV)","Volume cm3 (SV)",
+                          "Orientation side","Segment", "Voxel count (LM)","Volume mm3 (LM)" , "Volume cm3 (LM)", "Voxel count (SV)","Volume mm3 (SV)","Volume cm3 (SV)", 
+               "Difference_in_volume", "Total_volume")
 colnames(all_bone_samples_df) = data_names
-all_bone_samples_df
-
+head(all_bone_samples_df)
+#Segment	Voxel count (LM)	Volume mm3 (LM)	Volume cm3 (LM)	Voxel count (SV)	Volume mm3 (SV)	Volume cm3 (SV)
+i = 1
 for(i in 1:num_samples){
   #read in the left side table
   current_sample_name = sample_names_df[i]
-  left_table_file = paste0("Desktop/Drake Williams lab/uCT_data_v2/", current_sample_name)
+  left_table_file = current_sample_name
   left_table_file = paste0(left_table_file, "/")
   left_table_file = paste0(left_table_file, current_sample_name)
   left_table_file = paste0(left_table_file,"_L.tsv")
   #print(left_table_file)
   current_sample_Left_df = read.table(file = left_table_file, header = TRUE, fill = TRUE)
   colnames(current_sample_Left_df) = default_table_names
-  current_sample_Left_df = current_sample_Left_df[1:2,1:11]
-  current_sample_Left_df
+  current_sample_Left_df = current_sample_Left[1:2,1:17]
+  #current_sample_Left_df
   
   # #read in the right side table
-  right_table_file = paste0("Desktop/Drake Williams lab/uCT_data_v2/", current_sample_name)
+  right_table_file = current_sample_name
   right_table_file = paste0(right_table_file, "/")
   right_table_file = paste0(right_table_file, current_sample_name)
   right_table_file = paste0(right_table_file,"_R.tsv")
   #print(right_table_file)
   current_sample_Right_df = read.table(file = right_table_file, header = TRUE, fill = TRUE)
-
+  colnames(current_sample_Right_df) = default_table_names
+  current_sample_Right_df = current_sample_Right_df[1:2,1:17]
+  #current_sample_Right_df
+  
+  
   # #gather the results for the left side
   all_bone_samples_df[i, 1] = sample_names_df[i]
   all_bone_samples_df[i, 2] = "Left"
