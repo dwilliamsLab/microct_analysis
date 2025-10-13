@@ -147,7 +147,8 @@ bone_volume_to_plot3 <- bone_volume_to_plot3 %>%
 
 
 bargraph_of_bone_volume = ggplot(data = bone_volume_to_plot3, aes(x = SampleID, y = Total_volume, fill = Endpoint_days)) + 
-                          geom_bar(stat = "identity",  position = position_stack(reverse = TRUE),color = "black") + theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+                          geom_bar(stat = "identity",  position = position_stack(reverse = TRUE),color = "black") + theme_bw() + 
+                          theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
                           ylab("Total Volume (microns cubed)") + scale_y_continuous(breaks = seq(0, 1375, by = 125)) +
                           ggtitle("Total Volume of Bones") + theme(axis.text.x = element_text(color = "black")) +
                           labs(fill = "Endpoint (days)")
