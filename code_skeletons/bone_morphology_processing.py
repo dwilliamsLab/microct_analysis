@@ -44,6 +44,6 @@ def main():
     df["Trabecular Number_Total"] = pd.to_numeric(df["Trabecular Number_R"]) + pd.to_numeric(df["Trabecular Number_L"])
 
     # Save the DataFrame to a CSV file
-    df.to_csv("bone_metrics_combined_temp.csv", index=False)
+    df.to_csv("bone_metrics_combined.csv", index=False)
 
 main()
