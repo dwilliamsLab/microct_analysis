@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import argparse
 from scipy import ndimage
 from skimage.filters import threshold_otsu
+from matplotlib.backends.backend_pdf import PdfPages
 
 # checkpoint visualization helper
 def get_checkpoint_slice_indices(n_z, n_slices=10):
@@ -23,7 +24,7 @@ def get_checkpoint_slice_indices(n_z, n_slices=10):
     return z_idx[keep], fractions[keep]
 
 # panels is a dictionary
-def show_checkpoint(panels, title='', n_slices=10, figsize_per_slice=4.0):
+def show_checkpoint(panels, title='', n_slices=10, figsize_per_slice=4.0, pdf=None,):
     '''standard checkpoint visualization used throughout the pipeline'''
     n_z = panels[0]['volume'].shape[0]
     z_indices, fractions = get_checkpoint_slice_indices(n_z, n_slices)
@@ -54,7 +55,13 @@ def show_checkpoint(panels, title='', n_slices=10, figsize_per_slice=4.0):
             ax.axis('off')
     fig.suptitle(title, fontsize=13)
     plt.tight_layout()
+    
+    if pdf is not None:
+        pdf.savefig(fig, bbox_inches='tight')    
+
     plt.show()
+    plt.close(fig)
+    
     return z_indices
 
 def _otsu_threshold(values, n_bins=256):
@@ -145,6 +152,19 @@ def main(tiff_path, output_dir):
         )
     ).split(" [")[0]
     print("Sample_NAME: " + SAMPLE_NAME)
+
+    # --- PDF checkpoint report ---
+    os.makedirs(output_dir, exist_ok=True)
+
+    pdf_path = os.path.join(
+        output_dir,
+        f"{SAMPLE_NAME}_segmentation_report.pdf"
+    )
+
+    checkpoint_pdf = PdfPages(pdf_path)
+
+    print("Checkpoint PDF:", pdf_path)
+    
     # NRRD_OUTPUT_DIR = './nrrd_exports'
     NRRD_OUTPUT_DIR = output_dir
     print("Output directory: " + output_dir)
@@ -170,6 +190,7 @@ def main(tiff_path, output_dir):
     _ = show_checkpoint(
         panels=[{"volume": stack_full, "panel_title": "Raw loaded stack"}],
         title="Checkpoint 1 / 7 -- after loading",
+        pdf = checkpoint_pdf,
     )
 
     # 2. normalize intensities (zero mean, unit variance) for cross-scan consistency
@@ -190,6 +211,7 @@ def main(tiff_path, output_dir):
     _ = show_checkpoint(
         panels=[{"volume": norm_arr, "panel_title": "Normalized stack"}],
         title="Checkpoint 2 / 7 -- after normalization",
+        pdf = checkpoint_pdf,
         )    
     # Change 2: check that the normalization worked
     # Original image as NumPy array
@@ -349,6 +371,7 @@ def main(tiff_path, output_dir):
             },
         ],
         title="Checkpoint 3 / 7 -- ring \n location identified (no suppression)",
+    pdf = checkpoint_pdf,
     )
 
     # 4. detect enamel seeds from brightest non-ring voxels
@@ -390,6 +413,7 @@ def main(tiff_path, output_dir):
             "panel_title": "Enamel seeds (ring \n locations excluded, \npixels unmodified)",
         }],
         title="Checkpoint 4 / 7 -- \n after enamel seed detection",
+        pdf = checkpoint_pdf,
     )
 
     # 5. grow tooth via watershed (crop -> downsample -> watershed -> upsample -> clean)
@@ -570,6 +594,7 @@ def main(tiff_path, output_dir):
             "panel_title": "Tooth mask (post refinement, \npre speckle removal)",
         }],
         title="Checkpoint 5a -- after gaussian-smoothing resegmentation",
+        pdf = checkpoint_pdf,
     )
 
     # --- SPECKLE REMOVAL (opening + component size filter) ---
@@ -663,6 +688,7 @@ def main(tiff_path, output_dir):
             "panel_title": "Refinement crop (masked \nto dilation shell only)",
         }],
         title="Checkpoint 5.7a -- refinement crop before redo-watershed",
+        pdf = checkpoint_pdf,
     )
 
     # tooth seed: interior erosion, used to validate connectivity only
@@ -718,6 +744,7 @@ def main(tiff_path, output_dir):
             + (f" [PREVIEW stride={_ck5_stride}]" if _ck5_stride > 1 else ""),
         }],
         title="Checkpoint 5 / 7 -- after tooth growth & cleanup",
+        pdf = checkpoint_pdf,
     )
 
     # 6. threshold bone from raw stack, using band derived from tooth mask
@@ -765,6 +792,7 @@ def main(tiff_path, output_dir):
             "panel_title": "Bone band (orange) \n+ tooth mask (red)",
         }],
         title="Checkpoint 6 / 7 -- after bone thresholding",
+        pdf = checkpoint_pdf,
     )
 
     # 8. Tooth volume + bone volume restricted to the dilation shell
@@ -815,6 +843,7 @@ def main(tiff_path, output_dir):
             "panel_title": "Final cropped ROI",
         }],
         title="Checkpoint 7 / 7 -- after final dilation & crop",
+        pdf = checkpoint_pdf,
     )
 
     # 9. NRRD exports: combined label map + tooth-only + bone-only masks, all cropped to ROI
@@ -876,6 +905,10 @@ def main(tiff_path, output_dir):
     print("=== Volume measurements saved ===")
     print("Volume CSV:", volume_file)
 
+    # Close and finalize the multipage checkpoint PDF
+    checkpoint_pdf.close()
+    print("=== Checkpoint PDF saved ===")
+    print("PDF report:", pdf_path)
 
     # Last line to run
     print("End of program.")
